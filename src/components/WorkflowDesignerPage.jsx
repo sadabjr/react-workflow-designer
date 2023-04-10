@@ -1,72 +1,115 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import ReactFlow, { Controls, Background } from 'reactflow';
+import React, { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
+import ReactFlow, { Controls, MiniMap, Background } from "react-flow-renderer";
+import axios from "axios";
 
 function WorkflowDesignerPage() {
-  const [elements, setElements] = useState([]);
-  const nodeTypes = {
-    start: {
-      type: 'input',
-      label: 'Start',
-      color: '#3d3d3d',
-    },
-    task: {
-      type: 'default',
-      label: 'Task',
-      color: '#ffbd46',
-    },
-    end: {
-      type: 'output',
-      label: 'End',
-      color: '#f44336',
-    },
+  const [workflowData, setWorkflowData] = useState(null);
+  const [moduleData, setModuleData] = useState([]);
+  const { workflow_id } = useParams();
+
+  useEffect(() => {
+    // Fetch workflow data from API
+    axios
+      .get(
+        `https://64307b10d4518cfb0e50e555.mockapi.io/workflow/${workflow_id}`
+      )
+      .then((response) => {
+        setWorkflowData(response.data);
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  }, [workflow_id]);
+
+  useEffect(() => {
+    // Fetch module data from API
+    axios
+      .get("https://64307b10d4518cfb0e50e555.mockapi.io/modules", {
+        params: {
+          page: 1,
+          limit: 5,
+        },
+      })
+      .then((response) => {
+        setModuleData(response.data);
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  }, []);
+
+  const onLoad = (reactFlowInstance) => {
+    reactFlowInstance.fitView();
   };
-  const nodes = [
+
+  const handleNodeDragStop = (event, node) => {
+    console.log("Node dragged to:", node.position);
+  };
+
+  const handleDelete = (event, elementsToRemove) => {
+    console.log("Elements to remove:", elementsToRemove);
+  };
+
+  const elements = [
     {
-      id: '1',
-      type: 'start',
-      data: { label: 'Start' },
-      position: { x: 50, y: 50 },
-    },
-    {
-      id: '2',
-      type: 'task',
-      data: { label: 'Task 1' },
-      position: { x: 200, y: 50 },
-    },
-    {
-      id: '3',
-      type: 'task',
-      data: { label: 'Task 2' },
-      position: { x: 200, y: 150 },
-    },
-    {
-      id: '4',
-      type: 'end',
-      data: { label: 'End' },
-      position: { x: 350, y: 100 },
+      id: "input",
+      type: "input",
+      data: {
+        label: "Input",
+      },
+      position: { x: 100, y: 50 },
     },
   ];
 
+  const nodeTypes = {
+    input: ({ data }) => {
+      return (
+        <div>
+          <div>{data.label}</div>
+          <div>{workflowData && workflowData.inputType}</div>
+        </div>
+      );
+    },
+    output: ({ data }) => {
+      return (
+        <div>
+          <div>{data.label}</div>
+          <div>{data.outputType}</div>
+        </div>
+      );
+    },
+  };
+
   return (
-    <div className="container" >
-       
-{/* <nav class="navbar bg-body-tertiary">
-  <div class="container-fluid">
-    <Link class="navbar-brand">Navbar</Link>
-  </div>
-</nav> */}
+    <div className="container">
+      <nav
+        className="navbar m-2 pl-2"
+        style={{ borderRadius: "8px", backgroundColor: "#e8e8e6" }}
+      >
+        <h5 className="container">{workflowData && workflowData.name}</h5>
+      </nav>
       <div className="row">
         <div className="col-4">
           <div className="card border border-danger-subtle">
             <div className="card-header">Node Types</div>
             <div className="card-body">
-              {Object.keys(nodeTypes).map((type) => (
-                <div key={type} className="node-type">
-                  <div className={`node-type-icon ${type}`} />
-                  <div className="node-type-label">{nodeTypes[type].label}</div>
-                </div>
-              ))}
+              {moduleData.map((module) => {
+                return (
+                  <div
+                    key={module.id}
+                    draggable={true}
+                    onDragStart={(event) =>
+                      event.dataTransfer.setData(
+                        "text/plain",
+                        JSON.stringify(module)
+                      )
+                    }
+                  >
+                    {module.name}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -74,7 +117,15 @@ function WorkflowDesignerPage() {
           <div className="card">
             <div className="card-header">Design Area</div>
             <div className="card-body">
-              <ReactFlow elements={elements} onElementsRemove={setElements} />
+              <ReactFlow
+                elements={elements}
+                onNodeDragStop={handleNodeDragStop}
+                onElementsRemove={handleDelete}
+                onLoad={onLoad}
+                nodeTypes={nodeTypes}
+              >
+                <Controls />
+              </ReactFlow>
             </div>
           </div>
         </div>

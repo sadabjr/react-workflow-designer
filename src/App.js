@@ -16,7 +16,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/workflowList" element={<WorkflowList />} />
         <Route path="/workflowDesignerPage" element={<WorkflowDesignerPage />} />
-
+        {/* <Route path="/workflow/:workflow_id" component={WorkflowDesignerPage} /> */}
       </Routes>
     </Router>
     </div>
